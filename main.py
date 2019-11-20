@@ -11,9 +11,9 @@ def create_board():
 		for j in range(8):
 			for k in range(d):
 				for l in range(d):
-					val = (0,0,255)
+					val = (0.235,0.529,0.709)
 					if (i+j)%2 == 0:
-					 val = (100,100,0)
+					 val = (0.54,0.79,0.949)
 					img[i*d+k][j*d+l] = val
 	return img
 

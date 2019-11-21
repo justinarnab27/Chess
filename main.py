@@ -3,7 +3,8 @@ import numpy as np      #import numpy
 
 d = 60                  #The dimension of each square.
 						#We are using 60*60 pixel images for each square
-
+dark =[0.235,0.529,0.709]
+light = [0.54,0.79,0.949]
 def create_board():
 	'''Creates the initial board. Returns (d*8)*(8*d) image of board'''
 	img = np.zeros((8*d,8*d,3))
@@ -11,9 +12,9 @@ def create_board():
 		for j in range(8):
 			for k in range(d):
 				for l in range(d):
-					val = (0.235,0.529,0.709)
+					val = dark
 					if (i+j)%2 == 0:
-					 val = (0.54,0.79,0.949)
+					 val = light
 					img[i*d+k][j*d+l] = val
 	return img
 
@@ -31,6 +32,21 @@ def conv(img1,img2,r,c):
 					img1[d*r+i][d*c+j] = img2[i][j][:-1]
 	return img1
 
+def empty(img1,px,py):
+	'''Removes image of piece from square (px,py)'''
+	if(d_or_l(px,py)=='dark'):
+		val = dark;
+	else:
+		val = light
+
+	r,c = which_square(px,py)
+	r -= 1
+	c -= 1
+	for i in range(d):
+		for j in range(d):
+			img1[d*r+i][d*c+j] = val
+	return img1
+
 def load_pieces():
 	'''Loads the images of chess pieces.
 	Returns a dictionary of images having keys consisting
@@ -43,6 +59,23 @@ def load_pieces():
 			img1 = cv2.imread("img/Chess_{a}{b}t60.png".format(a=i,b=j),-1)
 			pieces[i+j] = img1
 	return pieces
+
+def which_square(px,py):
+	'''Takes the pixel coordinates (px,py) which are int and 
+	returns the square currently on as a 2-tuple.'''
+	rx = px%d
+	qx = (px - rx)/d
+	ry = py%d
+	qy = (py - ry)/d
+
+	return (int(qy+1),int(qx+1))
+
+def d_or_l(px,py):
+	r,c = which_square(px,py)
+	if((r+c)%2==0):
+		return 'light'
+	else:
+		return 'dark'
 
 def initialize(board,pieces):
 	'''Initializes the chess pieces at their starting positions.
@@ -70,12 +103,24 @@ def initialize(board,pieces):
 
 	return board
 
+def select(event,x,y,flags,param):
+	'''Mouse event. Makes character dissapear when clicked'''
+	if event == cv2.EVENT_LBUTTONDOWN:
+		img = empty(param,x,y)
 
 board = create_board()     #Creates the board
 pieces = load_pieces()     #Loads the pieces
 img = initialize(board,pieces)     #Initializes the pieces
 
-cv2.imshow("image",img)         #Shows images
+cv2.namedWindow("Image")
+cv2.setMouseCallback("Image",select,param=img)
 
-cv2.waitKey(0);               #waits for infinite time
+while(1):
+	cv2.imshow("Image",img)         #Shows images
+	key = cv2.waitKey(100);               #waits for infinite time
+	if key == 27:
+		break
+	if key == ord("d"):
+		break
+
 cv2.destroyAllWindows()       #Closes all windows

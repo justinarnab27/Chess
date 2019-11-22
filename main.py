@@ -5,6 +5,16 @@ d = 60                  #The dimension of each square.
 						#We are using 60*60 pixel images for each square
 dark =[0.235,0.529,0.709]
 light = [0.54,0.79,0.949]
+
+def d_or_l(px,py):
+	'''Returns if (px,py) in light square or dark
+	Return "light" or "dark" '''
+	r,c = which_square(px,py)
+	if((r+c)%2==0):
+		return 'light'
+	else:
+		return 'dark'
+
 def create_board():
 	'''Creates the initial board. Returns (d*8)*(8*d) image of board'''
 	img = np.zeros((8*d,8*d,3))
@@ -32,6 +42,33 @@ def conv(img1,img2,r,c):
 					img1[d*r+i][d*c+j] = img2[i][j][:-1]
 	return img1
 
+def selected(board,board_rep,x,y,pieces,reverse):
+	'''turns selected square red if reverse=False
+	else unselects if reverse=True'''
+	piece = board_rep[x-1][y-1]
+	x -= 1
+	y -= 1
+	val = []
+	if (x+y)%2 == 0:
+		val = light
+	else:
+		val = dark
+	for i in range(d):
+		for j in range(d):
+			if reverse == False:
+				board[d*x+i][d*y+j] = [0,0,255]
+			else:
+				board[d*x+i][d*y+j] = val
+	conv(board,pieces[piece],x+1,y+1)
+
+
+def turn_color(turn):
+	'''Returns the color of the player which moves this turn'''
+	if(turn%2==0):
+		return 'd'
+	else:
+		return 'l'
+
 def empty(img1,px,py):
 	'''Removes image of piece from square (px,py)'''
 	if(d_or_l(px,py)=='dark'):
@@ -45,7 +82,6 @@ def empty(img1,px,py):
 	for i in range(d):
 		for j in range(d):
 			img1[d*r+i][d*c+j] = val
-	return img1
 
 def load_pieces():
 	'''Loads the images of chess pieces.
@@ -69,13 +105,6 @@ def which_square(px,py):
 	qy = (py - ry)/d
 
 	return (int(qy+1),int(qx+1))
-
-def d_or_l(px,py):
-	r,c = which_square(px,py)
-	if((r+c)%2==0):
-		return 'light'
-	else:
-		return 'dark'
 
 def initialize(board,pieces):
 	'''Initializes the chess pieces at their starting positions.
@@ -103,17 +132,88 @@ def initialize(board,pieces):
 
 	return board
 
-def select(event,x,y,flags,param):
+def initialize_board_rep():
+	'''Returns and numpy array with cells containing pieces
+	present in the cell. Contains 00 if no piece is present
+	at theat cell'''
+	board_rep = []
+	for i in range(8):
+		row = []
+		for j in range(8):
+			row.append('00')
+		board_rep.append(row)
+
+	board_rep[0][0] = "rl"
+	board_rep[0][1] = "nl"
+	board_rep[0][2] = "bl"
+	board_rep[0][3] = "ql"
+	board_rep[0][4] = "kl"
+	board_rep[0][5] = "bl"
+	board_rep[0][6] = "nl"
+	board_rep[0][7] = "rl"
+	board_rep[7][0] = "rd"
+	board_rep[7][1] = "nd"
+	board_rep[7][2] = "bd"
+	board_rep[7][3] = "qd"
+	board_rep[7][4] = "kd"
+	board_rep[7][5] = "bd"
+	board_rep[7][6] = "nd"
+	board_rep[7][7] = "rd"
+
+	for i in range(8):
+		board_rep[1][i] = 'pl'
+		board_rep[6][i] = 'pd'
+
+	return board_rep
+
+def select(event,px,py,flags,param):
 	'''Mouse event. Makes character dissapear when clicked'''
+	board = param[0]
+	clicked = param[1]
+	board_rep = param[2]
+	turn = param[3]
+	turn_col = turn_color(turn[0])
+	pos = param[4]
+	pieces = param[5]
+
 	if event == cv2.EVENT_LBUTTONDOWN:
-		img = empty(param,x,y)
+		x,y = which_square(px,py)
+		if clicked[0] == False and board_rep[x-1][y-1][1] == turn_col:
+			selected(board,board_rep,x,y,pieces,False)
+			pos[0],pos[1] = px,py
+			clicked[0] = True
+
+		elif clicked[0] == True and board_rep[x-1][y-1][1] == turn_col:
+			selected(board,board_rep,x,y,pieces,False)
+			pos[0],pos[1] = which_square(pos[0],pos[1])
+			selected(board,board_rep,pos[0],pos[1],pieces,True)
+			pos[0],pos[1] = px,py
+			clicked[0] = True
+
+		elif clicked[0] == True and board_rep[x-1][y-1] == '00':
+			empty(board,pos[0],pos[1])
+			pos[0],pos[1] = which_square(pos[0],pos[1])
+			conv(board,pieces[board_rep[pos[0]-1][pos[1]-1]],x,y)
+			board_rep[x-1][y-1] = board_rep[pos[0]-1][pos[1]-1]
+			board_rep[pos[0]-1][pos[1]-1] = '00'
+			turn[0] += 1
+			clicked[0] = False
+
+		# else:
+		# 	print("Invalid Move!")
+
 
 board = create_board()     #Creates the board
+board_rep = initialize_board_rep() #Create a representation of the board
 pieces = load_pieces()     #Loads the pieces
 img = initialize(board,pieces)     #Initializes the pieces
+initialize_board_rep()
+clicked = [False]
+turn = [1]
+pos = [0,0]
 
 cv2.namedWindow("Image")
-cv2.setMouseCallback("Image",select,param=img)
+cv2.setMouseCallback("Image",select,param=[img,clicked,board_rep,turn,pos,pieces])
 
 while(1):
 	cv2.imshow("Image",img)         #Shows images

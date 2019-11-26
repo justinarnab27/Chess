@@ -2,7 +2,8 @@ import cv2              #import OpenCV
 import numpy as np      #import numpy
 
 d = 60                  #The dimension of each square.
-						#We are using 60*60 pixel images for each square
+	
+                        #We are using 60*60 pixel images for each square
 dark =[0.235,0.529,0.709]
 light = [0.54,0.79,0.949]
 

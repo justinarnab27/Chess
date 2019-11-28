@@ -144,6 +144,7 @@ def initialize_board_rep():
 			row.append('00')
 		board_rep.append(row)
 
+
 	board_rep[0][0] = "rl"
 	board_rep[0][1] = "nl"
 	board_rep[0][2] = "bl"
